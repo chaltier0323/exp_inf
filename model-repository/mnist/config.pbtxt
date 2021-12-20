@@ -1,0 +1,39 @@
+name: "mnist"
+platform: "tensorflow_savedmodel"
+max_batch_size: 32
+input [
+    {
+        name: "flatten_input"
+        data_type: TYPE_FP32
+        format: FORMAT_NHWC
+        dims: [28, 28, 1]
+    }
+]
+output [
+    {
+        name: "dense_1"
+        data_type: TYPE_FP32
+        dims: [10]
+    }
+]
+instance_group [
+    {
+        kind: KIND_GPU
+        count: 2
+    }
+]
+
+optimization { execution_accelerators {
+    gpu_execution_accelerator : [ {
+        name : "tensorrt"
+        parameters { key: "precision_mode" value: "FP16" }}]
+}}
+
+version_policy { latest { num_versions: 1 } }
+
+dynamic_batching {
+  preferred_batch_size: [ 4, 8 ]
+  max_queue_delay_microseconds: 100
+}
+
+
