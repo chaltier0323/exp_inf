@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Nov 28 16:54:00 2021
+
+@author: cloudy
+"""
+
+from PIL import Image
+import numpy as np
+import tritonclient.grpc as grpcclient
+from tritonclient.utils import triton_to_np_dtype
+
+## 前處理
+img = Image.open('input2.jpg').convert('L')
+img = img.resize((28, 28))
+imgArr = np.asarray(img)/255
+imgArr = np.expand_dims(imgArr[:, :, np.newaxis], 0)
+imgArr = imgArr.astype(triton_to_np_dtype('FP32'))
+
+## Client-Server 溝通
+triton_client = grpcclient.InferenceServerClient(url='localhost:8001', verbose=0)
+inputs = []
+inputs.append(grpcclient.InferInput('flatten_input', imgArr.shape, 'FP32'))
+inputs[0].set_data_from_numpy(imgArr)
+outputs = []
+outputs.append(grpcclient.InferRequestedOutput('dense_3',class_count=0))
+responses = []
+responses.append(triton_client.infer('mnistdeep1',inputs,
+                    request_id=str(1),
+                    model_version='1',
+                    outputs=outputs))
+
+## 後處理
+print (np.argmax(responses[0].as_numpy('dense_3')[0]))
+
